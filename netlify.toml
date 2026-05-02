@@ -1,0 +1,25 @@
+[build]
+  # Install all deps, then build React frontend
+  command = "cd netlify/functions && npm install && cd ../../backend && npm install && cd ../frontend && npm install && npm run build"
+  publish = "frontend/dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Exclude native SQLite bindings — not needed when using Turso (libsql:// URL)
+[functions.api]
+  external_node_modules = ["@libsql/node-sqlite3", "better-sqlite3"]
+
+# Route all /api/* requests to the Express function
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/api/:splat"
+  status = 200
+  force  = true
+
+# SPA fallback — serve index.html for all other routes
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

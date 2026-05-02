@@ -1,0 +1,7 @@
+{
+  "name": "netlify-functions",
+  "private": true,
+  "dependencies": {
+    "serverless-http": "^3.2.0"
+  }
+}
