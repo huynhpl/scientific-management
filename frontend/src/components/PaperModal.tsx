@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, GripVertical } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Plus, Trash2, GripVertical, Search } from 'lucide-react';
 import type { Paper, Author, Venue, PaperStatus, PaperType, AuthorRole } from '../types';
 import { TYPE_LABEL, ROLE_LABEL } from '../types';
 import { papersApi } from '../utils/api';
@@ -31,6 +31,9 @@ export default function PaperModal({ paper, authors, venues, onClose, onSaved }:
   const [tab, setTab] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [venueSearch, setVenueSearch] = useState('');
+  const [venueOpen, setVenueOpen] = useState(false);
+  const venueRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({
     title: '', abstract: '', type: 'conference' as PaperType, venue_id: '',
@@ -40,6 +43,14 @@ export default function PaperModal({ paper, authors, venues, onClose, onSaved }:
     doi: '', arxiv_url: '', paper_url: '', openreview_url: '',
   });
   const [paperAuthors, setPaperAuthors] = useState<AuthorEntry[]>([]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (venueRef.current && !venueRef.current.contains(e.target as Node)) setVenueOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (paper) {
@@ -66,6 +77,23 @@ export default function PaperModal({ paper, authors, venues, onClose, onSaved }:
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }));
+
+  const selectedVenue = venues.find(v => String(v.id) === form.venue_id);
+  const venueLabel = (v: Venue) => v.abbreviation ? `[${v.abbreviation}] ${v.name}` : v.name;
+  const filteredVenues = venueSearch.trim()
+    ? venues.filter(v => {
+        const q = venueSearch.toLowerCase();
+        return v.abbreviation?.toLowerCase().includes(q) || v.name.toLowerCase().includes(q);
+      })
+    : venues;
+  const venueConferences = filteredVenues.filter(v => v.type === 'conference');
+  const venueJournals = filteredVenues.filter(v => v.type === 'journal');
+
+  function selectVenue(id: string) {
+    setForm(f => ({ ...f, venue_id: id }));
+    setVenueSearch('');
+    setVenueOpen(false);
+  }
 
   function addAuthor() {
     const available = authors.filter(a => !paperAuthors.find(pa => pa.id === a.id));
@@ -172,19 +200,65 @@ export default function PaperModal({ paper, authors, venues, onClose, onSaved }:
                 </div>
                 <div>
                   <label className="label">Tạp chí / Hội nghị</label>
-                  <select className="input" value={form.venue_id} onChange={set('venue_id')}>
-                    <option value="">-- Chưa chọn --</option>
-                    <optgroup label="Hội nghị">
-                      {venues.filter(v => v.type === 'conference').map(v => (
-                        <option key={v.id} value={v.id}>{v.abbreviation ? `[${v.abbreviation}] ` : ''}{v.name}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Tạp chí">
-                      {venues.filter(v => v.type === 'journal').map(v => (
-                        <option key={v.id} value={v.id}>{v.abbreviation ? `[${v.abbreviation}] ` : ''}{v.name}</option>
-                      ))}
-                    </optgroup>
-                  </select>
+                  <div ref={venueRef} className="relative">
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      <input
+                        className="input pl-8 pr-8"
+                        placeholder={selectedVenue ? venueLabel(selectedVenue) : 'Tìm theo kí hiệu hoặc tên...'}
+                        value={venueOpen ? venueSearch : (selectedVenue ? venueLabel(selectedVenue) : '')}
+                        onFocus={() => { setVenueOpen(true); setVenueSearch(''); }}
+                        onChange={e => setVenueSearch(e.target.value)}
+                      />
+                      {form.venue_id && !venueOpen && (
+                        <button type="button" onClick={() => selectVenue('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                    {venueOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                        <div
+                          className="px-3 py-2 text-sm text-slate-400 hover:bg-slate-50 cursor-pointer"
+                          onMouseDown={() => selectVenue('')}
+                        >
+                          -- Chưa chọn --
+                        </div>
+                        {venueConferences.length > 0 && (
+                          <>
+                            <div className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 sticky top-0">Hội nghị</div>
+                            {venueConferences.map(v => (
+                              <div key={v.id}
+                                className={`px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 ${form.venue_id === String(v.id) ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}
+                                onMouseDown={() => selectVenue(String(v.id))}
+                              >
+                                {v.abbreviation && <span className="font-mono font-semibold mr-2">{v.abbreviation}</span>}
+                                <span className="text-slate-600">{v.name}</span>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        {venueJournals.length > 0 && (
+                          <>
+                            <div className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 sticky top-0">Tạp chí</div>
+                            {venueJournals.map(v => (
+                              <div key={v.id}
+                                className={`px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 hover:text-indigo-700 ${form.venue_id === String(v.id) ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}`}
+                                onMouseDown={() => selectVenue(String(v.id))}
+                              >
+                                {v.abbreviation && <span className="font-mono font-semibold mr-2">{v.abbreviation}</span>}
+                                <span className="text-slate-600">{v.name}</span>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        {venueConferences.length === 0 && venueJournals.length === 0 && (
+                          <div className="px-3 py-4 text-sm text-slate-400 text-center">Không tìm thấy kết quả</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="label">Tóm tắt</label>

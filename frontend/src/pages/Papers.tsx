@@ -54,7 +54,12 @@ export default function Papers() {
     if (filterAuthor && !p.authors.some(a => a.id === parseInt(filterAuthor))) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!p.title.toLowerCase().includes(q) && !(p.abstract?.toLowerCase().includes(q))) return false;
+      const matchTitle = p.title.toLowerCase().includes(q);
+      const matchAbstract = p.abstract?.toLowerCase().includes(q);
+      const matchDoi = p.doi?.toLowerCase().includes(q);
+      const matchVenueAbbr = p.venue?.abbreviation?.toLowerCase().includes(q);
+      const matchVenueName = p.venue?.name?.toLowerCase().includes(q);
+      if (!matchTitle && !matchAbstract && !matchDoi && !matchVenueAbbr && !matchVenueName) return false;
     }
     return true;
   });
