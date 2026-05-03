@@ -92,6 +92,19 @@ async function init() {
 
   }
 
+  // Seed default admin user if not exists
+  const { rows: adminCheck } = await client.execute(
+    "SELECT id FROM users WHERE username='admin' LIMIT 1"
+  );
+  if (!adminCheck.length) {
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash('admin', 10);
+    await client.execute({
+      sql: `INSERT INTO users (username, password_hash, role) VALUES ('admin', ?, 'admin')`,
+      args: [hash],
+    });
+  }
+
   // Migrate: link admin user to author id=1 if not linked (for demo data)
   const { rows: adminRows } = await client.execute(
     "SELECT id, author_id FROM users WHERE username='admin' LIMIT 1"
