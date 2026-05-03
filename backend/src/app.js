@@ -7,8 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Static file serving — skipped in serverless (no persistent filesystem)
-if (!process.env.NETLIFY) {
+// Static file serving — skipped in production/serverless (no persistent filesystem)
+if (!process.env.LIBSQL_URL) {
   const path = require('path');
   const { mkdirSync } = require('fs');
   const uploadsDir = path.join(__dirname, '../../uploads');
@@ -25,8 +25,8 @@ app.use('/api/teams',   requireAuth, require('./routes/teams'));
 app.use('/api/journals', require('./routes/journals'));
 app.use('/api/profile', require('./routes/profile'));
 
-// File upload — skipped in serverless
-if (!process.env.NETLIFY) {
+// File upload — skipped in production/serverless
+if (!process.env.LIBSQL_URL) {
   app.use('/api/files', requireAuth, require('./routes/files'));
 }
 
