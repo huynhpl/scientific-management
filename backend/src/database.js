@@ -40,6 +40,9 @@ async function init() {
   if (!venueColNames.includes('location')) {
     await client.execute("ALTER TABLE venues ADD COLUMN location TEXT");
   }
+  if (!venueColNames.includes('sjr_score')) {
+    await client.execute("ALTER TABLE venues ADD COLUMN sjr_score REAL");
+  }
 
   // Migrate: create users table if it was added after initial DB creation
   await client.execute(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', author_id INTEGER REFERENCES authors(id) ON DELETE SET NULL, created_at TEXT DEFAULT (datetime('now')))`);

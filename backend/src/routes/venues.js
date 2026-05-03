@@ -39,7 +39,8 @@ router.post('/extract', async (req, res) => {
 - abbreviation: short name/acronym (e.g. ICML, NeurIPS, Nature)
 - type: "conference" or "journal"
 - ranking: CORE ranking (A*, A, B, C) for conferences OR SJR quartile (Q1, Q2, Q3, Q4) for journals, or null
-- impact_factor: number for journals, null for conferences
+- impact_factor: number (JCR Impact Factor) for journals, null for conferences
+- sjr_score: number (SJR score) for journals, null for conferences
 - deadline: submission deadline in YYYY-MM-DD format, null if not found or past
 - location: city and country for conferences (e.g. "Vienna, Austria"), null for journals
 
@@ -69,16 +70,16 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, abbreviation, type, url, impact_factor, ranking, deadline, location } = req.body;
-    const r = await client.execute({ sql: 'INSERT INTO venues (name,abbreviation,type,url,impact_factor,ranking,deadline,location) VALUES (?,?,?,?,?,?,?,?)', args: [name, abbreviation||null, type||'conference', url||null, impact_factor||null, ranking||null, deadline||null, location||null] });
+    const { name, abbreviation, type, url, impact_factor, sjr_score, ranking, deadline, location } = req.body;
+    const r = await client.execute({ sql: 'INSERT INTO venues (name,abbreviation,type,url,impact_factor,sjr_score,ranking,deadline,location) VALUES (?,?,?,?,?,?,?,?,?)', args: [name, abbreviation||null, type||'conference', url||null, impact_factor||null, sjr_score||null, ranking||null, deadline||null, location||null] });
     res.status(201).json({ id: Number(r.lastInsertRowid) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/:id', async (req, res) => {
   try {
-    const { name, abbreviation, type, url, impact_factor, ranking, deadline, location } = req.body;
-    const r = await client.execute({ sql: 'UPDATE venues SET name=?,abbreviation=?,type=?,url=?,impact_factor=?,ranking=?,deadline=?,location=? WHERE id=?', args: [name, abbreviation||null, type, url||null, impact_factor||null, ranking||null, deadline||null, location||null, req.params.id] });
+    const { name, abbreviation, type, url, impact_factor, sjr_score, ranking, deadline, location } = req.body;
+    const r = await client.execute({ sql: 'UPDATE venues SET name=?,abbreviation=?,type=?,url=?,impact_factor=?,sjr_score=?,ranking=?,deadline=?,location=? WHERE id=?', args: [name, abbreviation||null, type, url||null, impact_factor||null, sjr_score||null, ranking||null, deadline||null, location||null, req.params.id] });
     if (r.rowsAffected === 0) return res.status(404).json({ error: 'Không tìm thấy venue' });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }

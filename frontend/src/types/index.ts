@@ -17,6 +17,7 @@ export interface Venue {
   type: 'journal' | 'conference';
   url?: string;
   impact_factor?: number;
+  sjr_score?: number;
   ranking?: string;
   deadline?: string;
   location?: string;
